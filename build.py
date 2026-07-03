@@ -9,6 +9,10 @@ import sys
 import platform
 import shutil
 
+# 设置输出编码
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # 应用名称
 APP_NAME = "BrowserLauncher"
 # 主脚本
@@ -26,6 +30,7 @@ base_args = [
     "--hidden-import", "requests",
     "--hidden-import", "qrcode",
     "--hidden-import", "PIL",
+    "--hidden-import", "PIL._tkinter_finder",  # Linux 必需
     # tkinter 相关
     "--hidden-import", "tkinter",
     "--hidden-import", "tkinter.filedialog",
@@ -67,22 +72,22 @@ else:
 
 PyInstaller.__main__.run(base_args)
 
-# 输出构建结果
+# 输出构建结果 (使用ASCII字符避免编码问题)
 system = platform.system()
 if system == 'Windows':
-    print(f"\n[OK] 打包完成! 输出文件: dist/{APP_NAME}.exe")
-    print("   可直接运行，无需安装任何依赖")
+    print(f"\n[OK] Build complete! Output: dist/{APP_NAME}.exe")
+    print("   No dependencies required")
 elif system == 'Darwin':
-    print(f"\n[OK] 打包完成! 输出文件: dist/{APP_NAME}")
-    print("   可直接运行，无需安装任何依赖")
+    print(f"\n[OK] Build complete! Output: dist/{APP_NAME}")
+    print("   No dependencies required")
 else:
-    print(f"\n[OK] 打包完成! 输出文件: dist/{APP_NAME}")
-    print("   首次运行请执行: chmod +x dist/BrowserLauncher")
-    print("   可直接运行，无需安装任何依赖")
+    print(f"\n[OK] Build complete! Output: dist/{APP_NAME}")
+    print("   Run: chmod +x dist/BrowserLauncher")
+    print("   No dependencies required")
 
 # 显示文件大小
 output_file = os.path.join("dist", APP_NAME + (".exe" if system == 'Windows' else ""))
 if os.path.exists(output_file):
     size_mb = os.path.getsize(output_file) / (1024 * 1024)
-    print(f"   文件大小: {size_mb:.1f} MB")
+    print(f"   File size: {size_mb:.1f} MB")
 
