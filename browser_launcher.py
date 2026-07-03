@@ -460,6 +460,12 @@ class BrowserLauncherApp:
             self.status_label.configure(text=f"获取链接失败: {status}", text_color="red")
     
     def run(self):
+        import time
+        
+        # 记录启动时间
+        start_time = time.time()
+        max_runtime = 24 * 60 * 60  # 24小时（秒）
+        
         # 先验证（使用临时隐藏的根窗口）
         root = ctk.CTk()
         root.withdraw()  # 隐藏根窗口
@@ -474,6 +480,15 @@ class BrowserLauncherApp:
         
         # 创建并显示主窗口
         self.setup_ui()
+        
+        # 设置定时检查，每分钟检查一次运行时间
+        def check_timeout():
+            if time.time() - start_time >= max_runtime:
+                self.root.destroy()
+                return
+            self.root.after(60000, check_timeout)  # 60秒后再次检查
+        
+        self.root.after(60000, check_timeout)
         self.root.mainloop()
 
 
