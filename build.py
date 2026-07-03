@@ -23,12 +23,9 @@ base_args = [
     "--clean",             # 清理临时文件
     # 核心依赖
     "--hidden-import", "customtkinter",
-    "--hidden-import", "customtkinter.widgets",
-    "--hidden-import", "customtkinter.windows",
     "--hidden-import", "requests",
     "--hidden-import", "qrcode",
     "--hidden-import", "PIL",
-    "--hidden-import", "PIL._tkinter_finder",
     # tkinter 相关
     "--hidden-import", "tkinter",
     "--hidden-import", "tkinter.filedialog",
@@ -73,13 +70,13 @@ PyInstaller.__main__.run(base_args)
 # 输出构建结果
 system = platform.system()
 if system == 'Windows':
-    print(f"\n✅ 打包完成! 输出文件: dist/{APP_NAME}.exe")
+    print(f"\n[OK] 打包完成! 输出文件: dist/{APP_NAME}.exe")
     print("   可直接运行，无需安装任何依赖")
 elif system == 'Darwin':
-    print(f"\n✅ 打包完成! 输出文件: dist/{APP_NAME}")
+    print(f"\n[OK] 打包完成! 输出文件: dist/{APP_NAME}")
     print("   可直接运行，无需安装任何依赖")
 else:
-    print(f"\n✅ 打包完成! 输出文件: dist/{APP_NAME}")
+    print(f"\n[OK] 打包完成! 输出文件: dist/{APP_NAME}")
     print("   首次运行请执行: chmod +x dist/BrowserLauncher")
     print("   可直接运行，无需安装任何依赖")
 
