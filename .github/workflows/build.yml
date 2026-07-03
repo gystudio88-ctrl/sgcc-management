@@ -1,0 +1,89 @@
+name: Build Browser Launcher
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            executable: BrowserLauncher.exe
+          - os: ubuntu-latest
+            platform: linux
+            executable: BrowserLauncher
+          - os: macos-latest
+            platform: macos
+            executable: BrowserLauncher
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk tk-dev
+
+      - name: Install macOS dependencies
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install tcl-tk
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build with PyInstaller
+        run: |
+          python build.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build
+          path: dist/${{ matrix.executable }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir release
+          cp artifacts/windows-build/BrowserLauncher.exe release/BrowserLauncher-Windows.exe
+          cp artifacts/linux-build/BrowserLauncher release/BrowserLauncher-Linux
+          cp artifacts/macos-build/BrowserLauncher release/BrowserLauncher-macOS
+          chmod +x release/BrowserLauncher-Linux
+          chmod +x release/BrowserLauncher-macOS
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/BrowserLauncher-Windows.exe
+            release/BrowserLauncher-Linux
+            release/BrowserLauncher-macOS
+          generate_release_notes: true
