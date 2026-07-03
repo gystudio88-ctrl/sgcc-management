@@ -362,6 +362,11 @@ def get_redirect_url(url, ip):
 
 class BrowserLauncherApp:
     def __init__(self):
+        self.root = None
+        self.browsers = None
+        
+    def setup_ui(self):
+        # 创建主窗口
         self.root = ctk.CTk()
         self.root.title("登录")
         self.root.geometry("500x400")
@@ -375,9 +380,6 @@ class BrowserLauncherApp:
         
         self.browsers = detect_browsers()
         
-        self.setup_ui()
-        
-    def setup_ui(self):
         # 标题
         title = ctk.CTkLabel(self.root, text="", font=("", 20, "bold"))
         title.pack(pady=5)
@@ -458,13 +460,20 @@ class BrowserLauncherApp:
             self.status_label.configure(text=f"获取链接失败: {status}", text_color="red")
     
     def run(self):
-        # 先验证
-        verify = VerifyDialog(self.root)
+        # 先验证（使用临时隐藏的根窗口）
+        root = ctk.CTk()
+        root.withdraw()  # 隐藏根窗口
+        
+        verify = VerifyDialog(root)
         if not verify.verified:
-            self.root.destroy()
+            root.destroy()
             return
         
-        # 验证通过，显示主窗口
+        # 验证通过，销毁临时窗口，显示主窗口
+        root.destroy()
+        
+        # 创建并显示主窗口
+        self.setup_ui()
         self.root.mainloop()
 
 
