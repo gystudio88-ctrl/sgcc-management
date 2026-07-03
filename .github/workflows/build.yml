@@ -11,6 +11,7 @@ jobs:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false  # 单个平台失败不影响其他平台
       matrix:
         include:
           - os: windows-latest
@@ -73,17 +74,20 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir release
-          cp artifacts/windows-build/BrowserLauncher.exe release/BrowserLauncher-Windows.exe
-          cp artifacts/linux-build/BrowserLauncher release/BrowserLauncher-Linux
-          cp artifacts/macos-build/BrowserLauncher release/BrowserLauncher-macOS
-          chmod +x release/BrowserLauncher-Linux
-          chmod +x release/BrowserLauncher-macOS
+          if [ -f artifacts/windows-build/BrowserLauncher.exe ]; then
+            cp artifacts/windows-build/BrowserLauncher.exe release/BrowserLauncher-Windows.exe
+          fi
+          if [ -f artifacts/linux-build/BrowserLauncher ]; then
+            cp artifacts/linux-build/BrowserLauncher release/BrowserLauncher-Linux
+            chmod +x release/BrowserLauncher-Linux
+          fi
+          if [ -f artifacts/macos-build/BrowserLauncher ]; then
+            cp artifacts/macos-build/BrowserLauncher release/BrowserLauncher-macOS
+            chmod +x release/BrowserLauncher-macOS
+          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            release/BrowserLauncher-Windows.exe
-            release/BrowserLauncher-Linux
-            release/BrowserLauncher-macOS
+          files: release/*
           generate_release_notes: true
