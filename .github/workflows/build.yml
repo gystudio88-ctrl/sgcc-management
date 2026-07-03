@@ -16,10 +16,10 @@ jobs:
           - os: windows-latest
             platform: windows
             executable: BrowserLauncher.exe
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             platform: linux
             executable: BrowserLauncher
-          - os: macos-latest
+          - os: macos-13
             platform: macos
             executable: BrowserLauncher
 
@@ -36,10 +36,10 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk tk-dev libxcb-xinerama0
+          sudo apt-get install -y python3-tk tk-dev libxcb-xinerama0 libegl1
 
       - name: Install macOS dependencies
-        if: matrix.os == 'macos-latest'
+        if: matrix.platform == 'macos'
         run: |
           brew install tcl-tk
 
