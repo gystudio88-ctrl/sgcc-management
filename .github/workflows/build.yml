@@ -16,7 +16,7 @@ jobs:
           - os: windows-latest
             platform: windows
             executable: BrowserLauncher.exe
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             platform: linux
             executable: BrowserLauncher
           - os: macos-latest
@@ -30,13 +30,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
       - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk tk-dev
+          sudo apt-get install -y python3-tk tk-dev libxcb-xinerama0
 
       - name: Install macOS dependencies
         if: matrix.os == 'macos-latest'
