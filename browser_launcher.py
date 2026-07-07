@@ -235,7 +235,9 @@ def detect_browsers():
                         browsers[name] = p
                         break
     elif sys.platform == 'linux':
-        # Linux 系统 - 使用 which 查找浏览器可执行文件
+        # Linux 系统 - 使用 shutil.which 查找浏览器
+        import shutil
+        
         browser_commands = [
             ("Google Chrome", ["google-chrome", "google-chrome-stable"]),
             ("Mozilla Firefox", ["firefox"]),
@@ -248,14 +250,10 @@ def detect_browsers():
         
         for name, cmds in browser_commands:
             for cmd in cmds:
-                # 使用 which 查找可执行文件
-                try:
-                    result = subprocess.run(['which', cmd], capture_output=True, text=True)
-                    if result.returncode == 0:
-                        browsers[name] = browser_path
-                        break
-                except:
-                    pass
+                browser_path = shutil.which(cmd)
+                if browser_path:
+                    browsers[name] = browser_path
+                    break
     
     elif sys.platform == 'darwin':
         # macOS 系统
