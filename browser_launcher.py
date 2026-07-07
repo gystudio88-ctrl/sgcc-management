@@ -277,9 +277,9 @@ def detect_browsers():
 
 def get_redirect_url(url, ip):
     """获取重定向链接"""
-    import socket
     import ssl
     import http.client
+    import subprocess
     
     # 确保 URL 有协议
     if not url.startswith('http://') and not url.startswith('https://'):
@@ -287,25 +287,36 @@ def get_redirect_url(url, ip):
     
     print(f"[DEBUG] get_redirect_url: url={url}")
     
-    # 测试 DNS 解析
+    # 解析 URL
+    parsed = url.split("/")
+    protocol = parsed[0].replace(":", "")
+    host = parsed[2].split(":")[0]
+    port = 443 if protocol == "https" else 80
+    path = "/" + "/".join(parsed[3:]) if len(parsed) > 3 else "/"
+    
+    print(f"[DEBUG] protocol={protocol}, host={host}, port={port}, path={path}")
+    
+    # 使用系统命令解析 DNS（兼容麒麟系统）
     try:
-        host = url.split("/")[2].split(":")[0]  # 移除端口
-        addr = socket.gethostbyname(host)
-        print(f"[DEBUG] DNS 解析成功: {host} -> {addr}")
+        result = subprocess.run(['getent', 'hosts', host], capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip():
+            addr = result.stdout.strip().split()[0]
+            print(f"[DEBUG] DNS 解析成功 (getent): {host} -> {addr}")
+        else:
+            # 备用：使用 host 命令
+            result = subprocess.run(['host', host], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0 and 'has address' in result.stdout:
+                addr = result.stdout.split('has address')[1].strip().split()[0]
+                print(f"[DEBUG] DNS 解析成功 (host): {host} -> {addr}")
+            else:
+                print(f"[DEBUG] DNS 解析失败，直接使用域名")
+                addr = host  # 直接使用域名，让系统解析
     except Exception as e:
-        print(f"[DEBUG] DNS 解析失败: {e}")
-        return "", f"DNS解析失败: {e}"
+        print(f"[DEBUG] DNS 解析异常: {e}，直接使用域名")
+        addr = host
     
     # 使用原生 http.client 请求
     try:
-        parsed = url.split("/")
-        protocol = parsed[0].replace(":", "")
-        host = parsed[2].split(":")[0]
-        port = 443 if protocol == "https" else 80
-        path = "/" + "/".join(parsed[3:]) if len(parsed) > 3 else "/"
-        
-        print(f"[DEBUG] protocol={protocol}, host={host}, port={port}, path={path}")
-        
         if protocol == "https":
             # 创建 SSL 上下文
             context = ssl.create_default_context()
@@ -337,17 +348,8 @@ def get_redirect_url(url, ip):
         conn.close()
         return location, response.status
         
-    except socket.timeout:
-        print(f"[DEBUG] 请求超时")
-        return "", "请求超时"
-    except socket.error as e:
-        print(f"[DEBUG] Socket错误: {e}")
-        return "", f"Socket错误: {e}"
-    except ssl.SSLError as e:
-        print(f"[DEBUG] SSL错误: {e}")
-        return "", f"SSL错误: {e}"
     except Exception as e:
-        print(f"[DEBUG] 其他错误: {type(e).__name__}: {e}")
+        print(f"[DEBUG] 请求错误: {type(e).__name__}: {e}")
         return "", str(e)[:100]
 
 
