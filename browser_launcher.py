@@ -277,9 +277,14 @@ def detect_browsers():
 
 def get_redirect_url(url, ip):
     """获取重定向链接"""
+    import socket
+    import urllib3
+    
     # 确保 URL 有协议
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'https://' + url
+    
+    print(f"[DEBUG] get_redirect_url: url={url}")
     
     headers = {
         "Host": url.split("/")[2] if "/" in url else url,
@@ -295,28 +300,53 @@ def get_redirect_url(url, ip):
         "Remote_Addr": ip,
     }
     
+    # 测试 DNS 解析
     try:
-        # 添加重试机制
+        host = url.split("/")[2]
+        addr = socket.gethostbyname(host)
+        print(f"[DEBUG] DNS 解析成功: {host} -> {addr}")
+    except Exception as e:
+        print(f"[DEBUG] DNS 解析失败: {e}")
+        return "", f"DNS解析失败: {e}"
+    
+    try:
+        # 使用系统证书
         session = requests.Session()
-        session.max_redirects = 5
         
+        # 尝试使用 urllib3 的重试机制
+        retry = urllib3.util.Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[500, 502, 503, 504]
+        )
+        adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        
+        print(f"[DEBUG] 开始发送 HTTP 请求...")
         response = session.get(
             url, 
             headers=headers, 
             allow_redirects=False, 
-            timeout=15,
-            verify=True  # 验证 SSL
+            timeout=20,
+            verify=True
         )
+        print(f"[DEBUG] HTTP 响应状态码: {response.status_code}")
         location = response.headers.get("Location", "")
+        print(f"[DEBUG] Location header: {location}")
         return location, response.status_code
-    except requests.exceptions.Timeout:
+    except requests.exceptions.Timeout as e:
+        print(f"[DEBUG] 请求超时: {e}")
         return "", "请求超时"
     except requests.exceptions.ConnectionError as e:
-        return "", f"连接错误: {str(e)[:50]}"
-    except requests.exceptions.SSLError:
-        return "", "SSL证书错误"
+        print(f"[DEBUG] 连接错误: {e}")
+        return "", f"连接错误: {str(e)[:100]}"
+    except requests.exceptions.SSLError as e:
+        print(f"[DEBUG] SSL错误: {e}")
+        return "", f"SSL证书错误: {str(e)[:50]}"
     except Exception as e:
-        return "", str(e)[:50]
+        print(f"[DEBUG] 其他错误: {e}")
+        return "", str(e)[:100]
 
 
 class BrowserLauncherApp:
