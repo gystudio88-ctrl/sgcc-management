@@ -451,8 +451,16 @@ class BrowserLauncherApp:
                     # macOS 使用 open 命令
                     subprocess.Popen(['open', '-a', browser_path, location])
                 else:
-                    # Linux 直接执行
-                    subprocess.Popen([browser_path, location], start_new_session=True)
+                    # Linux 启动浏览器
+                    if browser_path.startswith('/'):
+                        # 绝对路径，直接执行
+                        subprocess.Popen([browser_path, location], start_new_session=True)
+                    else:
+                        # 命令名，通过 shell 执行
+                        subprocess.Popen(['nohup', browser_path, location], 
+                                        start_new_session=True, 
+                                        stdout=subprocess.DEVNULL, 
+                                        stderr=subprocess.DEVNULL)
                 self.status_label.configure(text=f"已在 {browser_name} 中打开", text_color="green")
             except Exception as e:
                 self.status_label.configure(text=f"打开失败: {e}", text_color="red")
@@ -465,7 +473,6 @@ class BrowserLauncherApp:
         # 记录启动时间
         start_time = time.time()
         max_runtime = 24 * 60 * 60  # 24小时（秒）
-        
         # 先验证（使用临时隐藏的根窗口）
         root = ctk.CTk()
         root.withdraw()  # 隐藏根窗口
