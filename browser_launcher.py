@@ -287,15 +287,24 @@ def get_redirect_url(url, ip):
     
     try:
         # 使用 curl 命令获取重定向地址（不跟随重定向）
+        host = url.split("/")[2] if "/" in url else url
         cmd = [
             'curl', '-s', '-I',  # -I 只获取 headers，-s 静默模式
+            '-H', f'Host: {host}',
+            '-H', 'Connection: keep-alive',
+            '-H', 'Cache-Control: max-age=0',
+            '-H', 'Upgrade-Insecure-Requests: 1',
+            '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36',
+            '-H', 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            '-H', 'Accept-Encoding: deflate',
+            '-H', 'Accept-Language: zh-CN,zh;q=0.9',
             '-H', f'Client-Ip: {ip}',
             '-H', f'X-Forwarded-For: {ip}',
-            '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            '-H', f'Remote_Addr: {ip}',
             url
         ]
         
-        print(f"[DEBUG] 执行: {' '.join(cmd)}")
+        print(f"[DEBUG] 执行 curl...")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
         
         print(f"[DEBUG] curl 返回码: {result.returncode}")
