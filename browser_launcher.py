@@ -286,9 +286,9 @@ def get_redirect_url(url, ip):
     print(f"[DEBUG] get_redirect_url: url={url}")
     
     try:
-        # 使用 curl 命令获取重定向地址
+        # 使用 curl 命令获取重定向地址（不跟随重定向）
         cmd = [
-            'curl', '-s', '-I', '-L', '--max-redirs', '0',
+            'curl', '-s', '-I',  # -I 只获取 headers，-s 静默模式
             '-H', f'Client-Ip: {ip}',
             '-H', f'X-Forwarded-For: {ip}',
             '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -299,16 +299,21 @@ def get_redirect_url(url, ip):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
         
         print(f"[DEBUG] curl 返回码: {result.returncode}")
-        print(f"[DEBUG] curl stdout: {result.stdout[:500]}")
         
         # 解析 Location header
+        location = ""
+        status_code = 200
         for line in result.stdout.split('\n'):
+            line = line.strip()
             if line.lower().startswith('location:'):
                 location = line.split(':', 1)[1].strip()
-                print(f"[DEBUG] Location: {location}")
-                return location, 302
+            if line.startswith('HTTP/') and '302' in line:
+                status_code = 302
+            if line.startswith('HTTP/') and '301' in line:
+                status_code = 301
         
-        return "", "未找到重定向地址"
+        print(f"[DEBUG] Location: {location}, Status: {status_code}")
+        return location, status_code
         
     except subprocess.TimeoutExpired:
         print(f"[DEBUG] curl 超时")
