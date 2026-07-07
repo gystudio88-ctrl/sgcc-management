@@ -381,6 +381,10 @@ class BrowserLauncherApp:
         
         location, status = get_redirect_url(url, ip)
         
+        # 调试信息
+        debug_info = f"location: {location}, status: {status}, browser: {browser_path}"
+        print(debug_info)
+        
         if location:
             try:
                 # 跨平台启动浏览器
@@ -392,17 +396,18 @@ class BrowserLauncherApp:
                 else:
                     # Linux 启动浏览器
                     try:
-                        # 使用 subprocess.Popen 后台启动
+                        # 使用 xdg-open 或直接启动
                         subprocess.Popen(
                             [browser_path, location],
-                            start_new_session=True,
                             stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL
+                            stderr=subprocess.DEVNULL,
+                            start_new_session=True
                         )
-                    except Exception as e:
-                        # 如果失败，尝试使用 webbrowser 模块
+                    except Exception as ex:
+                        # 备用方案：使用 webbrowser 模块
                         import webbrowser
-                        webbrowser.open(location)
+                        if not webbrowser.open(location):
+                            raise Exception(f"无法打开浏览器: {ex}")
                 self.status_label.configure(text=f"已在 {browser_name} 中打开", text_color="green")
             except Exception as e:
                 self.status_label.configure(text=f"打开失败: {e}", text_color="red")
