@@ -277,6 +277,10 @@ def detect_browsers():
 
 def get_redirect_url(url, ip):
     """获取重定向链接"""
+    # 确保 URL 有协议
+    if not url.startswith('http://') and not url.startswith('https://'):
+        url = 'https://' + url
+    
     headers = {
         "Host": url.split("/")[2] if "/" in url else url,
         "Connection": "keep-alive",
@@ -292,11 +296,27 @@ def get_redirect_url(url, ip):
     }
     
     try:
-        response = requests.get(url, headers=headers, allow_redirects=False, timeout=10)
+        # 添加重试机制
+        session = requests.Session()
+        session.max_redirects = 5
+        
+        response = session.get(
+            url, 
+            headers=headers, 
+            allow_redirects=False, 
+            timeout=15,
+            verify=True  # 验证 SSL
+        )
         location = response.headers.get("Location", "")
         return location, response.status_code
+    except requests.exceptions.Timeout:
+        return "", "请求超时"
+    except requests.exceptions.ConnectionError as e:
+        return "", f"连接错误: {str(e)[:50]}"
+    except requests.exceptions.SSLError:
+        return "", "SSL证书错误"
     except Exception as e:
-        return "", str(e)
+        return "", str(e)[:50]
 
 
 class BrowserLauncherApp:
@@ -380,10 +400,6 @@ class BrowserLauncherApp:
         self.root.update()
         
         location, status = get_redirect_url(url, ip)
-        
-        # 调试信息
-        debug_info = f"location: {location}, status: {status}, browser: {browser_path}"
-        print(debug_info)
         
         if location:
             try:
