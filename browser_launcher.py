@@ -388,6 +388,12 @@ class BrowserLauncherApp:
         url = self.url_entry.get().strip()
         ip = self.ip_entry.get().strip()
         
+        # 调试输出
+        print(f"[DEBUG] URL: {url}")
+        print(f"[DEBUG] IP: {ip}")
+        print(f"[DEBUG] Browser: {browser_path}")
+        print(f"[DEBUG] Platform: {sys.platform}")
+        
         if not url:
             self.status_label.configure(text="请输入 URL", text_color="red")
             return
@@ -399,10 +405,14 @@ class BrowserLauncherApp:
         self.status_label.configure(text="正在获取链接...", text_color="gray")
         self.root.update()
         
+        print(f"[DEBUG] 正在请求 URL...")
         location, status = get_redirect_url(url, ip)
+        print(f"[DEBUG] Location: {location}")
+        print(f"[DEBUG] Status: {status}")
         
         if location:
             try:
+                print(f"[DEBUG] 正在启动浏览器...")
                 # 跨平台启动浏览器
                 if sys.platform == 'win32':
                     subprocess.Popen([browser_path, location])
@@ -411,21 +421,25 @@ class BrowserLauncherApp:
                     subprocess.Popen(['open', '-a', browser_path, location])
                 else:
                     # Linux 启动浏览器
+                    print(f"[DEBUG] Linux: 执行 {browser_path} {location}")
                     try:
-                        # 使用 xdg-open 或直接启动
-                        subprocess.Popen(
+                        proc = subprocess.Popen(
                             [browser_path, location],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
                             start_new_session=True
                         )
+                        print(f"[DEBUG] 浏览器进程 PID: {proc.pid}")
                     except Exception as ex:
+                        print(f"[DEBUG] subprocess.Popen 失败: {ex}")
                         # 备用方案：使用 webbrowser 模块
                         import webbrowser
                         if not webbrowser.open(location):
                             raise Exception(f"无法打开浏览器: {ex}")
                 self.status_label.configure(text=f"已在 {browser_name} 中打开", text_color="green")
+                print(f"[DEBUG] 浏览器启动成功")
             except Exception as e:
+                print(f"[DEBUG] 异常: {e}")
                 self.status_label.configure(text=f"打开失败: {e}", text_color="red")
         else:
             self.status_label.configure(text=f"获取链接失败: {status}", text_color="red")
