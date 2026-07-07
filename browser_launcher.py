@@ -235,86 +235,27 @@ def detect_browsers():
                         browsers[name] = p
                         break
     elif sys.platform == 'linux':
-        # Linux 系统
-        common_browsers = {
-            "Google Chrome": [
-                "google-chrome", "google-chrome-stable",
-                "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable",
-                "/opt/google/chrome/google-chrome",
-                os.path.expanduser("~/.local/share/flatpak/exports/bin/com.google.Chrome"),
-            ],
-            "Mozilla Firefox": [
-                "firefox", "/usr/bin/firefox", "/snap/bin/firefox",
-                "/usr/lib/firefox/firefox",
-                os.path.expanduser("~/.local/share/flatpak/exports/bin/org.mozilla.firefox"),
-            ],
-            "Microsoft Edge": [
-                "microsoft-edge", "microsoft-edge-stable",
-                "/usr/bin/microsoft-edge", "/opt/microsoft/msedge/microsoft-edge",
-            ],
-            "Chromium": [
-                "chromium", "chromium-browser",
-                "/usr/bin/chromium", "/usr/bin/chromium-browser",
-                "/snap/bin/chromium",
-                os.path.expanduser("~/.local/share/flatpak/exports/bin/org.chromium.Chromium"),
-            ],
-            "Brave": [
-                "brave", "brave-browser",
-                "/usr/bin/brave-browser", "/opt/brave.com/brave/brave-browser",
-                "/snap/bin/brave",
-            ],
-            "Vivaldi": [
-                "vivaldi", "/usr/bin/vivaldi", "/opt/vivaldi/vivaldi",
-            ],
-            "Opera": [
-                "opera", "/usr/bin/opera", "/snap/bin/opera",
-            ],
-        }
+        # Linux 系统 - 使用 which 查找浏览器可执行文件
+        browser_commands = [
+            ("Google Chrome", ["google-chrome", "google-chrome-stable"]),
+            ("Mozilla Firefox", ["firefox"]),
+            ("Microsoft Edge", ["microsoft-edge", "microsoft-edge-stable"]),
+            ("Chromium", ["chromium", "chromium-browser"]),
+            ("Brave", ["brave", "brave-browser"]),
+            ("Vivaldi", ["vivaldi"]),
+            ("Opera", ["opera"]),
+        ]
         
-        for name, cmds in common_browsers.items():
+        for name, cmds in browser_commands:
             for cmd in cmds:
-                # 检查是否是绝对路径
-                if cmd.startswith('/') or cmd.startswith('~'):
-                    expanded = os.path.expanduser(cmd)
-                    if os.path.exists(expanded):
-                        browsers[name] = expanded
-                        break
-                else:
-                    # 检查是否在 PATH 中
+                # 使用 which 查找可执行文件
+                try:
                     result = subprocess.run(['which', cmd], capture_output=True, text=True)
                     if result.returncode == 0:
-                        browsers[name] = result.stdout.strip()
+                        browsers[name] = browser_path
                         break
-        
-        # 尝试通过 xdg-mime 获取默认浏览器
-        try:
-            result = subprocess.run(
-                ['xdg-mime', 'query', 'default', 'x-scheme-handler/http'],
-                capture_output=True, text=True
-            )
-            if result.returncode == 0:
-                default_browser = result.stdout.strip()
-                if default_browser and 'Default Browser' not in browsers:
-                    # 尝试找到对应的可执行文件
-                    desktop_files = [
-                        f'/usr/share/applications/{default_browser}',
-                        os.path.expanduser(f'~/.local/share/applications/{default_browser}'),
-                    ]
-                    for desktop_file in desktop_files:
-                        if os.path.exists(desktop_file):
-                            # 解析 .desktop 文件获取 Exec
-                            with open(desktop_file, 'r') as f:
-                                for line in f:
-                                    if line.startswith('Exec='):
-                                        exec_cmd = line.split('=', 1)[1].strip()
-                                        # 移除参数占位符
-                                        exec_cmd = exec_cmd.split('%')[0].strip()
-                                        if exec_cmd:
-                                            browsers['Default Browser'] = exec_cmd
-                                            break
-                            break
-        except:
-            pass
+                except:
+                    pass
     
     elif sys.platform == 'darwin':
         # macOS 系统
@@ -452,15 +393,18 @@ class BrowserLauncherApp:
                     subprocess.Popen(['open', '-a', browser_path, location])
                 else:
                     # Linux 启动浏览器
-                    if browser_path.startswith('/'):
-                        # 绝对路径，直接执行
-                        subprocess.Popen([browser_path, location], start_new_session=True)
-                    else:
-                        # 命令名，通过 shell 执行
-                        subprocess.Popen(['nohup', browser_path, location], 
-                                        start_new_session=True, 
-                                        stdout=subprocess.DEVNULL, 
-                                        stderr=subprocess.DEVNULL)
+                    try:
+                        # 使用 subprocess.Popen 后台启动
+                        subprocess.Popen(
+                            [browser_path, location],
+                            start_new_session=True,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+                    except Exception as e:
+                        # 如果失败，尝试使用 webbrowser 模块
+                        import webbrowser
+                        webbrowser.open(location)
                 self.status_label.configure(text=f"已在 {browser_name} 中打开", text_color="green")
             except Exception as e:
                 self.status_label.configure(text=f"打开失败: {e}", text_color="red")
