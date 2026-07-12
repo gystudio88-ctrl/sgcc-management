@@ -278,7 +278,7 @@ def detect_browsers():
 def get_redirect_url(url, ip):
     """获取重定向链接"""
     import pycurl
-    import subprocess
+    import os
     from io import BytesIO
     
     # 确保 URL 有协议
@@ -288,49 +288,23 @@ def get_redirect_url(url, ip):
     print(f"[DEBUG] get_redirect_url: url={url}")
     
     try:
-        # 解析 URL
-        parsed = url.split("/")
-        protocol = parsed[0].replace(":", "")
-        host = parsed[2].split(":")[0]
-        port = 443 if protocol == "https" else 80
-        path = "/" + "/".join(parsed[3:]) if len(parsed) > 3 else "/"
+        host = url.split("/")[2] if "/" in url else url
         
-        # 使用系统命令解析 DNS
-        print(f"[DEBUG] 解析 DNS: {host}")
-        resolved_ip = None
-        try:
-            result = subprocess.run(['getent', 'hosts', host], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0 and result.stdout.strip():
-                resolved_ip = result.stdout.strip().split()[0]
-                print(f"[DEBUG] DNS 解析成功: {host} -> {resolved_ip}")
-        except Exception as e:
-            print(f"[DEBUG] getent 失败: {e}")
-        
-        # 如果没有解析到，尝试 nslookup
-        if not resolved_ip:
-            try:
-                result = subprocess.run(['nslookup', host], capture_output=True, text=True, timeout=5)
-                for line in result.stdout.split('\n'):
-                    if 'Address:' in line and 'Address: #' not in line:
-                        resolved_ip = line.split('Address:')[1].strip()
-                        if resolved_ip and not resolved_ip.startswith('#'):
-                            print(f"[DEBUG] nslookup 解析成功: {host} -> {resolved_ip}")
-                            break
-            except Exception as e:
-                print(f"[DEBUG] nslookup 失败: {e}")
-        
-        # 构建请求 URL
-        if resolved_ip:
-            request_url = f"{protocol}://{resolved_ip}:{port}{path}"
-            print(f"[DEBUG] 使用 IP 请求: {request_url}")
-        else:
-            request_url = url
-            print(f"[DEBUG] 使用原始 URL: {request_url}")
+        # 设置 resolv.conf 路径（让 curl 使用系统 DNS）
+        resolv_paths = [
+            '/etc/resolv.conf',
+            '/run/systemd/resolve/resolv.conf',
+            '/var/run/resolv.conf',
+        ]
+        for resolv in resolv_paths:
+            if os.path.exists(resolv):
+                print(f"[DEBUG] 找到 resolv.conf: {resolv}")
+                break
         
         buffer = BytesIO()
         
         c = pycurl.Curl()
-        c.setopt(pycurl.URL, request_url)
+        c.setopt(pycurl.URL, url)
         c.setopt(pycurl.WRITEDATA, buffer)
         c.setopt(pycurl.HEADER, True)
         c.setopt(pycurl.NOBODY, True)
@@ -338,6 +312,9 @@ def get_redirect_url(url, ip):
         c.setopt(pycurl.TIMEOUT, 20)
         c.setopt(pycurl.SSL_VERIFYPEER, False)
         c.setopt(pycurl.SSL_VERIFYHOST, False)
+        
+        # 设置 DNS 解析选项
+        c.setopt(pycurl.DNS_CACHE_TIMEOUT, 60)  # DNS 缓存 60 秒
         
         # 设置请求头
         headers = [
