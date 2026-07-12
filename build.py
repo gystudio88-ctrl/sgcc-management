@@ -28,7 +28,6 @@ base_args = [
     # 核心依赖
     "--hidden-import", "customtkinter",
     "--hidden-import", "requests",
-    "--hidden-import", "pycurl",
     "--hidden-import", "qrcode",
     "--hidden-import", "PIL",
     "--hidden-import", "PIL._tkinter_finder",  # Linux 必需

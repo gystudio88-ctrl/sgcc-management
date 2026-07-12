@@ -277,9 +277,7 @@ def detect_browsers():
 
 def get_redirect_url(url, ip):
     """获取重定向链接"""
-    import pycurl
-    import os
-    from io import BytesIO
+    import subprocess
     
     # 确保 URL 有协议
     if not url.startswith('http://') and not url.startswith('https://'):
@@ -290,67 +288,45 @@ def get_redirect_url(url, ip):
     try:
         host = url.split("/")[2] if "/" in url else url
         
-        # 设置 resolv.conf 路径（让 curl 使用系统 DNS）
-        resolv_paths = [
-            '/etc/resolv.conf',
-            '/run/systemd/resolve/resolv.conf',
-            '/var/run/resolv.conf',
+        # 使用 wget 命令获取重定向（wget 使用系统 DNS）
+        cmd = [
+            'wget', '-S', '--spider', '--timeout=20', '--tries=1',
+            '--header', f'Host: {host}',
+            '--header', 'Connection: keep-alive',
+            '--header', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            '--header', f'Client-Ip: {ip}',
+            '--header', f'X-Forwarded-For: {ip}',
+            '--header', f'Remote_Addr: {ip}',
+            '--no-check-certificate',
+            url
         ]
-        for resolv in resolv_paths:
-            if os.path.exists(resolv):
-                print(f"[DEBUG] 找到 resolv.conf: {resolv}")
-                break
         
-        buffer = BytesIO()
-        
-        c = pycurl.Curl()
-        c.setopt(pycurl.URL, url)
-        c.setopt(pycurl.WRITEDATA, buffer)
-        c.setopt(pycurl.HEADER, True)
-        c.setopt(pycurl.NOBODY, True)
-        c.setopt(pycurl.FOLLOWLOCATION, False)
-        c.setopt(pycurl.TIMEOUT, 20)
-        c.setopt(pycurl.SSL_VERIFYPEER, False)
-        c.setopt(pycurl.SSL_VERIFYHOST, False)
-        
-        # 设置 DNS 解析选项
-        c.setopt(pycurl.DNS_CACHE_TIMEOUT, 60)  # DNS 缓存 60 秒
-        
-        # 设置请求头
-        headers = [
-            f"Host: {host}",
-            "Connection: keep-alive",
-            "Cache-Control: max-age=0",
-            "Upgrade-Insecure-Requests: 1",
-            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36",
-            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "Accept-Encoding: deflate",
-            "Accept-Language: zh-CN,zh;q=0.9",
-            f"Client-Ip: {ip}",
-            f"X-Forwarded-For: {ip}",
-            f"Remote_Addr: {ip}",
-        ]
-        c.setopt(pycurl.HTTPHEADER, headers)
-        
-        print(f"[DEBUG] 发送请求...")
-        c.perform()
-        
-        status_code = c.getinfo(pycurl.RESPONSE_CODE)
-        c.close()
+        print(f"[DEBUG] 使用 wget 发送请求...")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
         
         # 解析响应
-        response_text = buffer.getvalue().decode('utf-8', errors='ignore')
+        output = result.stderr + result.stdout
         location = ""
-        for line in response_text.split('\n'):
-            if line.lower().startswith('location:'):
-                location = line.split(':', 1)[1].strip()
-                break
+        status_code = 200
+        
+        for line in output.split('\n'):
+            line = line.strip()
+            if 'Location:' in line:
+                location = line.split('Location:')[1].strip()
+            if 'HTTP/' in line and ('302' in line or '301' in line):
+                status_code = 302 if '302' in line else 301
         
         print(f"[DEBUG] 响应状态: {status_code}")
         print(f"[DEBUG] Location: {location}")
         
         return location, status_code
         
+    except subprocess.TimeoutExpired:
+        print(f"[DEBUG] wget 超时")
+        return "", "请求超时"
+    except FileNotFoundError:
+        print(f"[DEBUG] wget 命令不存在")
+        return "", "系统缺少wget命令"
     except Exception as e:
         print(f"[DEBUG] 请求错误: {type(e).__name__}: {e}")
         return "", str(e)[:100]
