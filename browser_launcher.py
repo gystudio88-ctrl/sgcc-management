@@ -277,7 +277,7 @@ def detect_browsers():
 
 def get_redirect_url(url, ip):
     """获取重定向链接"""
-    import subprocess
+    from curl_cffi import requests as cffi_requests
     
     # 确保 URL 有协议
     if not url.startswith('http://') and not url.startswith('https://'):
@@ -286,52 +286,39 @@ def get_redirect_url(url, ip):
     print(f"[DEBUG] get_redirect_url: url={url}")
     
     try:
-        # 使用 curl 命令获取重定向地址（不跟随重定向）
         host = url.split("/")[2] if "/" in url else url
-        cmd = [
-            'curl', '-s', '-I',  # -I 只获取 headers，-s 静默模式
-            '-H', f'Host: {host}',
-            '-H', 'Connection: keep-alive',
-            '-H', 'Cache-Control: max-age=0',
-            '-H', 'Upgrade-Insecure-Requests: 1',
-            '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36',
-            '-H', 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-            '-H', 'Accept-Encoding: deflate',
-            '-H', 'Accept-Language: zh-CN,zh;q=0.9',
-            '-H', f'Client-Ip: {ip}',
-            '-H', f'X-Forwarded-For: {ip}',
-            '-H', f'Remote_Addr: {ip}',
-            url
-        ]
         
-        print(f"[DEBUG] 执行 curl...")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+        headers = {
+            "Host": host,
+            "Connection": "keep-alive",
+            "Cache-Control": "max-age=0",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+            "Accept-Encoding": "deflate",
+            "Accept-Language": "zh-CN,zh;q=0.9",
+            "Client-Ip": ip,
+            "X-Forwarded-For": ip,
+            "Remote_Addr": ip,
+        }
         
-        print(f"[DEBUG] curl 返回码: {result.returncode}")
+        print(f"[DEBUG] 使用 curl_cffi 发送请求...")
+        response = cffi_requests.get(
+            url, 
+            headers=headers, 
+            allow_redirects=False, 
+            timeout=20,
+            impersonate="chrome110"  # 模拟 Chrome 110 的 TLS 指纹
+        )
         
-        # 解析 Location header
-        location = ""
-        status_code = 200
-        for line in result.stdout.split('\n'):
-            line = line.strip()
-            if line.lower().startswith('location:'):
-                location = line.split(':', 1)[1].strip()
-            if line.startswith('HTTP/') and '302' in line:
-                status_code = 302
-            if line.startswith('HTTP/') and '301' in line:
-                status_code = 301
+        print(f"[DEBUG] 响应状态: {response.status_code}")
+        location = response.headers.get("Location", "")
+        print(f"[DEBUG] Location: {location}")
         
-        print(f"[DEBUG] Location: {location}, Status: {status_code}")
-        return location, status_code
+        return location, response.status_code
         
-    except subprocess.TimeoutExpired:
-        print(f"[DEBUG] curl 超时")
-        return "", "请求超时"
-    except FileNotFoundError:
-        print(f"[DEBUG] curl 命令不存在")
-        return "", "系统缺少curl命令"
     except Exception as e:
-        print(f"[DEBUG] 请求错误: {e}")
+        print(f"[DEBUG] 请求错误: {type(e).__name__}: {e}")
         return "", str(e)[:100]
 
 
