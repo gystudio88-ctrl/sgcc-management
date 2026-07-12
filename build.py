@@ -28,8 +28,7 @@ base_args = [
     # 核心依赖
     "--hidden-import", "customtkinter",
     "--hidden-import", "requests",
-    "--hidden-import", "curl_cffi",
-    "--hidden-import", "curl_cffi.requests",
+    "--hidden-import", "pycurl",
     "--hidden-import", "qrcode",
     "--hidden-import", "PIL",
     "--hidden-import", "PIL._tkinter_finder",  # Linux 必需
@@ -44,7 +43,6 @@ base_args = [
     # 打包所有数据文件
     "--collect-all", "customtkinter",
     "--collect-all", "qrcode",
-    "--collect-all", "curl_cffi",
 ]
 
 # 根据平台添加特定参数

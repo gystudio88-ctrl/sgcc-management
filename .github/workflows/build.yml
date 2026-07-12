@@ -44,7 +44,8 @@ jobs:
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y \
             python3 python3-pip python3-tk tk-dev \
-            git libxcb-xinerama0 libegl1
+            git libxcb-xinerama0 libegl1 \
+            libcurl4-openssl-dev libssl-dev
           ln -sf /usr/bin/python3 /usr/bin/python
 
       - name: Checkout code

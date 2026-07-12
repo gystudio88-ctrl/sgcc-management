@@ -277,7 +277,8 @@ def detect_browsers():
 
 def get_redirect_url(url, ip):
     """获取重定向链接"""
-    from curl_cffi import requests as cffi_requests
+    import pycurl
+    from io import BytesIO
     
     # 确保 URL 有协议
     if not url.startswith('http://') and not url.startswith('https://'):
@@ -288,34 +289,56 @@ def get_redirect_url(url, ip):
     try:
         host = url.split("/")[2] if "/" in url else url
         
-        headers = {
-            "Host": host,
-            "Connection": "keep-alive",
-            "Cache-Control": "max-age=0",
-            "Upgrade-Insecure-Requests": "1",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-            "Accept-Encoding": "deflate",
-            "Accept-Language": "zh-CN,zh;q=0.9",
-            "Client-Ip": ip,
-            "X-Forwarded-For": ip,
-            "Remote_Addr": ip,
-        }
+        buffer = BytesIO()
+        headers_buffer = BytesIO()
         
-        print(f"[DEBUG] 使用 curl_cffi 发送请求...")
-        response = cffi_requests.get(
-            url, 
-            headers=headers, 
-            allow_redirects=False, 
-            timeout=20,
-            impersonate="chrome110"  # 模拟 Chrome 110 的 TLS 指纹
-        )
+        c = pycurl.Curl()
+        c.setopt(pycurl.URL, url)
+        c.setopt(pycurl.WRITEDATA, buffer)
+        c.setopt(pycurl.HEADERDATA, headers_buffer)
+        c.setopt(pycurl.NOBODY, True)  # 只获取 header
+        c.setopt(pycurl.FOLLOWLOCATION, False)  # 不跟随重定向
+        c.setopt(pycurl.TIMEOUT, 20)
+        c.setopt(pycurl.SSL_VERIFYPEER, False)  # 跳过 SSL 验证
+        c.setopt(pycurl.SSL_VERIFYHOST, False)
         
-        print(f"[DEBUG] 响应状态: {response.status_code}")
-        location = response.headers.get("Location", "")
+        # 设置请求头
+        headers = [
+            f"Host: {host}",
+            "Connection: keep-alive",
+            "Cache-Control: max-age=0",
+            "Upgrade-Insecure-Requests: 1",
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36",
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Encoding: deflate",
+            "Accept-Language: zh-CN,zh;q=0.9",
+            f"Client-Ip: {ip}",
+            f"X-Forwarded-For: {ip}",
+            f"Remote_Addr: {ip}",
+        ]
+        c.setopt(pycurl.HTTPHEADER, headers)
+        
+        # 设置 TLS 指纹（模拟 Chrome）
+        c.setopt(pycurl.SSLVERSION, pycurl.SSLVERSION_TLSv1_2)
+        
+        print(f"[DEBUG] 使用 pycurl 发送请求...")
+        c.perform()
+        
+        status_code = c.getinfo(pycurl.RESPONSE_CODE)
+        c.close()
+        
+        # 解析 Location
+        headers_text = headers_buffer.getvalue().decode('utf-8', errors='ignore')
+        location = ""
+        for line in headers_text.split('\n'):
+            if line.lower().startswith('location:'):
+                location = line.split(':', 1)[1].strip()
+                break
+        
+        print(f"[DEBUG] 响应状态: {status_code}")
         print(f"[DEBUG] Location: {location}")
         
-        return location, response.status_code
+        return location, status_code
         
     except Exception as e:
         print(f"[DEBUG] 请求错误: {type(e).__name__}: {e}")
