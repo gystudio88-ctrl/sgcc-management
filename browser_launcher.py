@@ -290,16 +290,15 @@ def get_redirect_url(url, ip):
         host = url.split("/")[2] if "/" in url else url
         
         buffer = BytesIO()
-        headers_buffer = BytesIO()
         
         c = pycurl.Curl()
         c.setopt(pycurl.URL, url)
         c.setopt(pycurl.WRITEDATA, buffer)
-        c.setopt(pycurl.HEADERDATA, headers_buffer)
+        c.setopt(pycurl.HEADER, True)  # 包含 header 在输出中
         c.setopt(pycurl.NOBODY, True)  # 只获取 header
         c.setopt(pycurl.FOLLOWLOCATION, False)  # 不跟随重定向
         c.setopt(pycurl.TIMEOUT, 20)
-        c.setopt(pycurl.SSL_VERIFYPEER, False)  # 跳过 SSL 验证
+        c.setopt(pycurl.SSL_VERIFYPEER, False)
         c.setopt(pycurl.SSL_VERIFYHOST, False)
         
         # 设置请求头
@@ -318,19 +317,16 @@ def get_redirect_url(url, ip):
         ]
         c.setopt(pycurl.HTTPHEADER, headers)
         
-        # 设置 TLS 指纹（模拟 Chrome）
-        c.setopt(pycurl.SSLVERSION, pycurl.SSLVERSION_TLSv1_2)
-        
         print(f"[DEBUG] 使用 pycurl 发送请求...")
         c.perform()
         
         status_code = c.getinfo(pycurl.RESPONSE_CODE)
         c.close()
         
-        # 解析 Location
-        headers_text = headers_buffer.getvalue().decode('utf-8', errors='ignore')
+        # 解析响应
+        response_text = buffer.getvalue().decode('utf-8', errors='ignore')
         location = ""
-        for line in headers_text.split('\n'):
+        for line in response_text.split('\n'):
             if line.lower().startswith('location:'):
                 location = line.split(':', 1)[1].strip()
                 break
