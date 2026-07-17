@@ -2,6 +2,8 @@ module browser-launcher
 
 go 1.22
 
+toolchain go1.22.0
+
 require github.com/wailsapp/wails/v2 v2.8.2
 
 require (

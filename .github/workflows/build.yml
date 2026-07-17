@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Download dependencies
+        run: go mod download
+
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.8.2
 
@@ -53,12 +56,15 @@ jobs:
       - name: Install Linux dependencies
         run: |
           DEBIAN_FRONTEND=noninteractive apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl
+          DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl build-essential
           DEBIAN_FRONTEND=noninteractive apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev wget git
           
           # 安装 Node.js 20
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
+
+      - name: Download dependencies
+        run: go mod download
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.8.2
@@ -88,6 +94,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Download dependencies
+        run: go mod download
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.8.2
