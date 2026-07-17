@@ -80,7 +80,9 @@ jobs:
 
   build-macos:
     name: Build macOS
-    runs-on: macos-latest
+    runs-on: macos-13
+    env:
+      CGO_ENABLED: 1
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -101,9 +103,9 @@ jobs:
       - name: Install Wails
         run: |
           go install github.com/wailsapp/wails/v2/cmd/wails@v2.8.2
-          # 重新编译 wails 以解决 macOS LC_UUID 问题
-          cd $(go env GOPATH)/pkg/mod/github.com/wailsapp/wails/v2@v2.8.2
-          go build -o $(go env GOPATH)/bin/wails ./cmd/wails
+          # 删除并重新编译以解决 LC_UUID 问题
+          rm -f $(go env GOPATH)/bin/wails
+          go build -ldflags="-s -w" -o $(go env GOPATH)/bin/wails github.com/wailsapp/wails/v2/cmd/wails
 
       - name: Build
         run: wails build
