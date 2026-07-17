@@ -6,9 +6,6 @@ on:
       - 'v*'
   workflow_dispatch:  # 手动触发
 
-env:
-  GOTOOLCHAIN: local
-
 jobs:
   build-windows:
     name: Build Windows
@@ -20,7 +17,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -51,7 +48,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
       - name: Install Linux dependencies
         run: |
@@ -85,7 +82,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
