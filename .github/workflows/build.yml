@@ -99,7 +99,11 @@ jobs:
         run: go mod download
 
       - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.8.2
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.8.2
+          # 重新编译 wails 以解决 macOS LC_UUID 问题
+          cd $(go env GOPATH)/pkg/mod/github.com/wailsapp/wails/v2@v2.8.2
+          go build -o $(go env GOPATH)/bin/wails ./cmd/wails
 
       - name: Build
         run: wails build
