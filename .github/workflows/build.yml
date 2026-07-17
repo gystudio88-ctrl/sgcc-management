@@ -97,14 +97,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Clear Go cache
-        run: go clean -cache -modcache -i -r
-
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.1
+
+      - name: Download dependencies
+        run: go mod download
 
       - name: Build
         run: wails build
