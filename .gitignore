@@ -1,34 +1,3 @@
-# Build outputs
-dist/
-build/
-*.spec
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-.eggs/
-*.egg
-
-# Virtual environments
-venv/
-ENV/
-.venv/
-env/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
+build/bin
+node_modules
+frontend/dist

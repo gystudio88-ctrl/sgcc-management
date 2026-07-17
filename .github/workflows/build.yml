@@ -14,56 +14,61 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          python-version: '3.10'
+          go-version: '1.21'
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Build with PyInstaller
-        run: python build.py
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Build
+        run: wails build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/BrowserLauncher.exe
+          path: build/bin/browser-launcher.exe
 
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:20.04  # GLIBC 2.31
     steps:
-      - name: Install dependencies
-        run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            python3 python3-pip python3-tk tk-dev \
-            git libxcb-xinerama0 libegl1 \
-            wget
-          ln -sf /usr/bin/python3 /usr/bin/python
-
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
 
-      - name: Build with PyInstaller
-        run: python build.py
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Build
+        run: wails build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: dist/BrowserLauncher
+          path: build/bin/browser-launcher
 
   build-macos:
     name: Build macOS
@@ -72,27 +77,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          python-version: '3.10'
+          go-version: '1.21'
 
-      - name: Install macOS dependencies
-        run: brew install tcl-tk
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      - name: Build with PyInstaller
-        run: python build.py
+      - name: Build
+        run: wails build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: dist/BrowserLauncher
+          path: build/bin/browser-launcher.app
 
   release:
     name: Create Release
@@ -109,16 +114,16 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir release
-          if [ -f artifacts/windows-build/BrowserLauncher.exe ]; then
-            cp artifacts/windows-build/BrowserLauncher.exe release/BrowserLauncher-Windows.exe
+          if [ -f artifacts/windows-build/browser-launcher.exe ]; then
+            cp artifacts/windows-build/browser-launcher.exe release/browser-launcher-windows.exe
           fi
-          if [ -f artifacts/linux-build/BrowserLauncher ]; then
-            cp artifacts/linux-build/BrowserLauncher release/BrowserLauncher-Linux
-            chmod +x release/BrowserLauncher-Linux
+          if [ -f artifacts/linux-build/browser-launcher ]; then
+            cp artifacts/linux-build/browser-launcher release/browser-launcher-linux
+            chmod +x release/browser-launcher-linux
           fi
-          if [ -f artifacts/macos-build/BrowserLauncher ]; then
-            cp artifacts/macos-build/BrowserLauncher release/BrowserLauncher-macOS
-            chmod +x release/BrowserLauncher-macOS
+          if [ -d artifacts/macos-build/browser-launcher.app ]; then
+            cd artifacts/macos-build
+            zip -r ../../release/browser-launcher-macos.zip browser-launcher.app
           fi
 
       - name: Create Release

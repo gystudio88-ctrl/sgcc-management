@@ -1,95 +1,88 @@
-# sgcc-management
+# 国网管理工具 (SGCC Management Tool)
 
-账号管理工具
+一个基于 Wails 框架开发的跨平台浏览器启动器，用于国网系统账号管理。
 
-## 功能
+## 功能特性
 
-- 多平台账号管理客户端
-- 支持多种认证方式（密码/短信/UKey/人脸/二维码）
-- 浏览器启动器
+- 浏览器检测与管理（支持 Chrome、Edge、Firefox、360、搜狗等主流浏览器）
+- 账号验证与登录
+- 验证码二维码显示
+- 跨平台支持（Windows、Linux、macOS）
+- 深色主题界面
 
-## 下载
+## 技术栈
 
-从 [Releases](../../releases) 页面下载对应平台的可执行文件：
+- **后端**: Go (Wails v2)
+- **前端**: HTML + CSS + JavaScript (Vanilla)
+- **GUI**: WebView (系统原生)
 
-| 平台 | 文件 |
-|------|------|
-| Windows | `BrowserLauncher-Windows.exe` |
-| Linux | `BrowserLauncher-Linux` |
-| macOS | `BrowserLauncher-macOS` |
+## 环境要求
 
-所有版本均为独立可执行文件，**无需安装任何依赖**，直接运行即可。
+- Go 1.18+
+- Node.js 16+ (仅开发时需要)
+- Wails CLI (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
 
-## 本地构建
-
-### 前置要求
-
-- Python 3.8+
-- pip
-
-### Windows
+## 开发
 
 ```bash
-pip install -r requirements.txt
-python build.py
+# 安装依赖
+cd frontend
+npm install
+
+# 开发模式运行
+wails dev
 ```
 
-### Linux
+## 构建
 
 ```bash
-pip install -r requirements.txt
-chmod +x build.sh
-./build.sh
+# 构建生产版本
+wails build
 ```
 
-### macOS
-
-```bash
-pip install -r requirements.txt
-python3 build.py
-```
-
-## GitHub 自动构建
-
-项目使用 GitHub Actions 自动构建：
-
-1. 创建 tag 触发构建：
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-
-2. 自动构建 Windows/Linux/macOS 三个平台
-
-3. 自动发布到 Releases 页面
-
-也可以在 Actions 页面手动触发构建。
-
-## 支持的浏览器
-
-| 浏览器 | Windows | Linux | macOS |
-|--------|---------|-------|-------|
-| Google Chrome | ✅ | ✅ | ✅ |
-| Mozilla Firefox | ✅ | ✅ | ✅ |
-| Microsoft Edge | ✅ | ✅ | ✅ |
-| Chromium | ✅ | ✅ | ✅ |
-| Brave | ✅ | ✅ | ✅ |
-| Vivaldi | ✅ | ✅ | ✅ |
-| Opera | ✅ | ✅ | ✅ |
-| Safari | - | - | ✅ |
+构建完成后，可执行文件位于 `build/bin/` 目录。
 
 ## 项目结构
 
 ```
-sgcc-management/
-├── browser_launcher.py       # 主程序
-├── login.js                  # 登录页面逻辑
-├── aostaritEncrypt.js        # 国密加密 (SM2/SM3)
-├── accounts.json             # 账号数据
-├── build.py                  # 构建脚本
-├── build.bat                 # Windows 构建批处理
-├── build.sh                  # Linux/macOS 构建脚本
-├── requirements.txt          # Python 依赖
-├── .github/workflows/build.yml  # GitHub Actions 构建配置
-└── dist/                     # 构建产物
+.
+├── app.go                 # Wails 应用主逻辑
+├── main.go               # 程序入口
+├── internal/
+│   ├── browser/          # 浏览器检测模块
+│   ├── network/          # 网络模块
+│   └── verify/           # 验证模块
+├── frontend/             # 前端代码
+│   ├── index.html
+│   └── src/
+│       ├── main.js
+│       └── style.css
+└── wails.json           # Wails 配置
 ```
+
+## 支持的浏览器
+
+### Windows
+- Google Chrome
+- Microsoft Edge
+- Mozilla Firefox
+- 360 安全/极速浏览器
+- 搜狗浏览器
+- QQ 浏览器
+- 遨游浏览器
+
+### Linux
+- Google Chrome
+- Mozilla Firefox
+- Chromium
+- 麒麟浏览器
+- 优麒麟浏览器
+
+### macOS
+- Google Chrome
+- Safari
+- Mozilla Firefox
+
+## License
+
+MIT
