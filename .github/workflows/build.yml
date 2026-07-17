@@ -104,7 +104,7 @@ jobs:
         run: go mod download
 
       - name: Build
-        run: wails build
+        run: wails build -nosign
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
