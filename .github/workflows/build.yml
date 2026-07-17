@@ -28,7 +28,7 @@ jobs:
         run: go mod download
 
       - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.8.2
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.1
 
       - name: Build
         run: wails build
@@ -67,7 +67,7 @@ jobs:
         run: go mod download
 
       - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.8.2
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.1
 
       - name: Build
         run: wails build
@@ -101,7 +101,7 @@ jobs:
         run: go mod download
 
       - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.8.2
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.9.1
 
       - name: Build
         run: wails build
