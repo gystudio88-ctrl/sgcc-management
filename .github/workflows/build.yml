@@ -80,24 +80,27 @@ jobs:
           cp build/appicon.png package/usr/share/icons/hicolor/256x256/apps/browser-launcher.png
           
           # 创建 desktop 文件
-          echo '[Desktop Entry]' > package/usr/share/applications/browser-launcher.desktop
-          echo 'Name=Browser Launcher' >> package/usr/share/applications/browser-launcher.desktop
-          echo 'Comment=Browser Launcher Application' >> package/usr/share/applications/browser-launcher.desktop
-          echo 'Exec=/usr/bin/browser-launcher' >> package/usr/share/applications/browser-launcher.desktop
-          echo 'Icon=browser-launcher' >> package/usr/share/applications/browser-launcher.desktop
-          echo 'Terminal=false' >> package/usr/share/applications/browser-launcher.desktop
-          echo 'Type=Application' >> package/usr/share/applications/browser-launcher.desktop
-          echo 'Categories=Network;WebBrowser;' >> package/usr/share/applications/browser-launcher.desktop
+          cat > package/usr/share/applications/browser-launcher.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Browser Launcher
+          Comment=Browser Launcher Application
+          Exec=/usr/bin/browser-launcher
+          Icon=browser-launcher
+          Terminal=false
+          Type=Application
+          Categories=Network;WebBrowser;
+          EOF
           
           # 创建控制文件
-          echo 'Package: browser-launcher' > package/DEBIAN/control
-          echo 'Version: 1.0.0' >> package/DEBIAN/control
-          echo 'Architecture: amd64' >> package/DEBIAN/control
-          echo 'Maintainer: gystudio88 <gystudio88@gmail.com>' >> package/DEBIAN/control
-          echo 'Description: Browser Launcher Application' >> package/DEBIAN/control
-          echo ' A cross-platform browser launcher built with Wails.' >> package/DEBIAN/control
-          echo '' >> package/DEBIAN/control
-          echo 'Depends: libwebkit2gtk-4.1-0 (>= 2.40.0) | libwebkit2gtk-4.0-37 (>= 2.40.0)' >> package/DEBIAN/control
+          cat > package/DEBIAN/control << 'EOF'
+          Package: browser-launcher
+          Version: 1.0.0
+          Architecture: amd64
+          Maintainer: gystudio88 <gystudio88@gmail.com>
+          Description: Browser Launcher Application
+           A cross-platform browser launcher built with Wails.
+          Depends: libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37
+          EOF
           
           # 构建 deb 包
           dpkg-deb --build package browser-launcher_1.0.0_amd64.deb
