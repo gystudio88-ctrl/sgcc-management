@@ -6,62 +6,16 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
-	"golang.org/x/sys/windows/registry"
 )
 
-// detectWindows Windows 系统浏览器检测 - 使用注册表
+// detectWindows Windows 系统浏览器检测
 func detectWindows() []Browser {
 	browsers := make(map[string]string)
 
-	// 从注册表检测浏览器
-	regPaths := []registry.Key{
-		registry.LOCAL_MACHINE,
-		registry.CURRENT_USER,
-	}
-
-	for _, hkey := range regPaths {
-		key, err := registry.OpenKey(hkey, `SOFTWARE\Clients\StartMenuInternet`, registry.READ)
-		if err != nil {
-			continue
-		}
-
-		subkeys, err := key.ReadSubKeyNames(-1)
-		if err != nil {
-			key.Close()
-			continue
-		}
-
-		for _, subkeyName := range subkeys {
-			subkey, err := registry.OpenKey(key, subkeyName, registry.READ)
-			if err != nil {
-				continue
-			}
-
-			// 获取浏览器名称
-			name, _, err := subkey.GetStringValue("")
-			if err != nil {
-				name = subkeyName
-			}
-
-			// 获取可执行文件路径
-			cmdKey, err := registry.OpenKey(subkey, `shell\open\command`, registry.READ)
-			if err == nil {
-				cmd, _, err := cmdKey.GetStringValue("")
-				if err == nil {
-					path := extractExePath(cmd)
-					if path != "" && fileExists(path) {
-						if _, exists := browsers[name]; !exists {
-							browsers[name] = path
-						}
-					}
-				}
-				cmdKey.Close()
-			}
-			subkey.Close()
-		}
-		key.Close()
-	}
+	// 使用 reg query 命令从注册表检测浏览器
+	// 检查 HKLM 和 HKCU 的 StartMenuInternet
+	detectFromRegistry("HKLM", &browsers)
+	detectFromRegistry("HKCU", &browsers)
 
 	// 补充常见浏览器路径
 	commonPaths := map[string][]string{
@@ -121,7 +75,71 @@ func detectWindows() []Browser {
 	return result
 }
 
-// extractExePath 从注册表命令字符串中提取 exe 路径
+// detectFromRegistry 从注册表检测浏览器
+func detectFromRegistry(hive string, browsers *map[string]string) {
+	// 使用 reg query 命令查询注册表
+	cmd := exec.Command("reg", "query", hive+`\SOFTWARE\Clients\StartMenuInternet`, "/s")
+	output, err := cmd.Output()
+	if err != nil {
+		return
+	}
+
+	lines := strings.Split(string(output), "\n")
+	var currentName string
+	var currentPath string
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		
+		// 检测浏览器名称 (注册表键名的默认值)
+		if strings.HasPrefix(line, hive) {
+			// 新的浏览器条目开始
+			if currentName != "" && currentPath != "" {
+				if _, exists := (*browsers)[currentName]; !exists {
+					(*browsers)[currentName] = currentPath
+				}
+			}
+			currentName = ""
+			currentPath = ""
+			
+			// 提取键名作为默认名称
+			parts := strings.Split(line, `\`)
+			if len(parts) > 0 {
+				lastPart := parts[len(parts)-1]
+				if lastPart != "StartMenuInternet" {
+					currentName = lastPart
+				}
+			}
+		}
+
+		// 检测命令路径
+		if strings.Contains(line, "shell\\open\\command") {
+			// 下一行应该是命令值
+			continue
+		}
+
+		// 提取命令值
+		if strings.HasPrefix(line, "(Default)") || strings.HasPrefix(line, "") && strings.Contains(line, "REG_SZ") {
+			parts := strings.SplitN(line, "REG_SZ", 2)
+			if len(parts) == 2 {
+				cmd := strings.TrimSpace(parts[1])
+				path := extractExePath(cmd)
+				if path != "" && fileExists(path) {
+					currentPath = path
+				}
+			}
+		}
+	}
+
+	// 处理最后一个条目
+	if currentName != "" && currentPath != "" {
+		if _, exists := (*browsers)[currentName]; !exists {
+			(*browsers)[currentName] = currentPath
+		}
+	}
+}
+
+// extractExePath 从命令字符串中提取 exe 路径
 func extractExePath(cmd string) string {
 	cmd = strings.TrimSpace(cmd)
 	if cmd == "" {
