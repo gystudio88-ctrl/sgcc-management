@@ -57,7 +57,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
-          # 创建符号链接以兼容 webkit2gtk-4.0
           sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc || true
 
       - name: Install Wails
@@ -66,11 +65,48 @@ jobs:
       - name: Build
         run: wails build
 
+      - name: Create DEB package
+        run: |
+          mkdir -p package/DEBIAN
+          mkdir -p package/usr/bin
+          mkdir -p package/usr/share/applications
+          mkdir -p package/usr/share/icons/hicolor/256x256/apps
+          
+          # 复制可执行文件
+          cp build/bin/browser-launcher package/usr/bin/
+          chmod +x package/usr/bin/browser-launcher
+          
+          # 复制图标
+          cp build/appicon.png package/usr/share/icons/hicolor/256x256/apps/browser-launcher.png
+          
+          # 创建 desktop 文件
+          echo '[Desktop Entry]' > package/usr/share/applications/browser-launcher.desktop
+          echo 'Name=Browser Launcher' >> package/usr/share/applications/browser-launcher.desktop
+          echo 'Comment=Browser Launcher Application' >> package/usr/share/applications/browser-launcher.desktop
+          echo 'Exec=/usr/bin/browser-launcher' >> package/usr/share/applications/browser-launcher.desktop
+          echo 'Icon=browser-launcher' >> package/usr/share/applications/browser-launcher.desktop
+          echo 'Terminal=false' >> package/usr/share/applications/browser-launcher.desktop
+          echo 'Type=Application' >> package/usr/share/applications/browser-launcher.desktop
+          echo 'Categories=Network;WebBrowser;' >> package/usr/share/applications/browser-launcher.desktop
+          
+          # 创建控制文件
+          echo 'Package: browser-launcher' > package/DEBIAN/control
+          echo 'Version: 1.0.0' >> package/DEBIAN/control
+          echo 'Architecture: amd64' >> package/DEBIAN/control
+          echo 'Maintainer: gystudio88 <gystudio88@gmail.com>' >> package/DEBIAN/control
+          echo 'Description: Browser Launcher Application' >> package/DEBIAN/control
+          echo ' A cross-platform browser launcher built with Wails.' >> package/DEBIAN/control
+          echo '' >> package/DEBIAN/control
+          echo 'Depends: libwebkit2gtk-4.1-0 (>= 2.40.0) | libwebkit2gtk-4.0-37 (>= 2.40.0)' >> package/DEBIAN/control
+          
+          # 构建 deb 包
+          dpkg-deb --build package browser-launcher_1.0.0_amd64.deb
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: build/bin/browser-launcher
+          path: browser-launcher_1.0.0_amd64.deb
 
   build-macos:
     name: Build macOS
@@ -119,9 +155,8 @@ jobs:
           if [ -f artifacts/windows-build/browser-launcher.exe ]; then
             cp artifacts/windows-build/browser-launcher.exe release/browser-launcher-windows.exe
           fi
-          if [ -f artifacts/linux-build/browser-launcher ]; then
-            cp artifacts/linux-build/browser-launcher release/browser-launcher-linux
-            chmod +x release/browser-launcher-linux
+          if [ -f artifacts/linux-build/browser-launcher_1.0.0_amd64.deb ]; then
+            cp artifacts/linux-build/browser-launcher_1.0.0_amd64.deb release/
           fi
           if [ -d artifacts/macos-build/browser-launcher.app ]; then
             cd artifacts/macos-build
