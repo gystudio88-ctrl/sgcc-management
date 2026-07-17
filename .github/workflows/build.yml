@@ -65,51 +65,11 @@ jobs:
       - name: Build
         run: wails build
 
-      - name: Create DEB package
-        run: |
-          mkdir -p package/DEBIAN
-          mkdir -p package/usr/bin
-          mkdir -p package/usr/share/applications
-          mkdir -p package/usr/share/icons/hicolor/256x256/apps
-          
-          # 复制可执行文件
-          cp build/bin/browser-launcher package/usr/bin/
-          chmod +x package/usr/bin/browser-launcher
-          
-          # 复制图标
-          cp build/appicon.png package/usr/share/icons/hicolor/256x256/apps/browser-launcher.png
-          
-          # 创建 desktop 文件
-          cat > package/usr/share/applications/browser-launcher.desktop << 'EOF'
-          [Desktop Entry]
-          Name=Browser Launcher
-          Comment=Browser Launcher Application
-          Exec=/usr/bin/browser-launcher
-          Icon=browser-launcher
-          Terminal=false
-          Type=Application
-          Categories=Network;WebBrowser;
-          EOF
-          
-          # 创建控制文件
-          cat > package/DEBIAN/control << 'EOF'
-          Package: browser-launcher
-          Version: 1.0.0
-          Architecture: amd64
-          Maintainer: gystudio88 <gystudio88@gmail.com>
-          Description: Browser Launcher Application
-           A cross-platform browser launcher built with Wails.
-          Depends: libwebkit2gtk-4.0-37
-          EOF
-          
-          # 构建 deb 包
-          dpkg-deb --build package browser-launcher_1.0.0_amd64.deb
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: browser-launcher_1.0.0_amd64.deb
+          path: build/bin/browser-launcher
 
   build-macos:
     name: Build macOS
@@ -158,8 +118,9 @@ jobs:
           if [ -f artifacts/windows-build/browser-launcher.exe ]; then
             cp artifacts/windows-build/browser-launcher.exe release/browser-launcher-windows.exe
           fi
-          if [ -f artifacts/linux-build/browser-launcher_1.0.0_amd64.deb ]; then
-            cp artifacts/linux-build/browser-launcher_1.0.0_amd64.deb release/
+          if [ -f artifacts/linux-build/browser-launcher ]; then
+            cp artifacts/linux-build/browser-launcher release/browser-launcher-linux
+            chmod +x release/browser-launcher-linux
           fi
           if [ -d artifacts/macos-build/browser-launcher.app ]; then
             cd artifacts/macos-build
