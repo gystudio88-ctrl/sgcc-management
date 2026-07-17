@@ -33,8 +33,8 @@ func (a *App) startup(ctx context.Context) {
 // autoCloseTimer 24 小时自动关闭定时器
 func (a *App) autoCloseTimer() {
 	// TODO: 测试时使用 1 分钟，正式环境改为 24 * time.Hour
-	time.Sleep(1 * time.Minute)
-	// time.Sleep(24 * time.Hour)
+	//time.Sleep(1 * time.Minute)
+	time.Sleep(24 * time.Hour)
 	runtime.Quit(a.ctx)
 }
 
