@@ -7,7 +7,7 @@
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
-    "name": "gystudio88-ctrl",
-    "email": "gystudio88@gmail.com"
+    "name": "sgcc-browser-launcher",
+    "email": "admin@sgcc.com.cn"
   }
 }
