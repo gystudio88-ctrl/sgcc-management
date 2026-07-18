@@ -4,17 +4,22 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
 
 // RedirectResult 重定向结果
 type RedirectResult struct {
-	Location    string
-	StatusCode  int
-	Error       string
+	Location   string
+	StatusCode int
+	Error      string
 }
+
+// 初始化日志
+var logger = log.New(os.Stdout, "[NETWORK] ", log.LstdFlags|log.Lshortfile)
 
 // GetRedirectURL 获取重定向链接
 func GetRedirectURL(url, ip string) RedirectResult {
@@ -28,6 +33,8 @@ func GetRedirectURL(url, ip string) RedirectResult {
 	if parts := strings.Split(url, "/"); len(parts) >= 3 {
 		host = parts[2]
 	}
+
+	logger.Printf("开始请求: URL=%s, IP=%s, Host=%s", url, ip, host)
 
 	// 创建自定义 Transport
 	transport := &http.Transport{
@@ -52,6 +59,7 @@ func GetRedirectURL(url, ip string) RedirectResult {
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
+		logger.Printf("创建请求失败: %v", err)
 		return RedirectResult{Error: fmt.Sprintf("创建请求失败: %v", err)}
 	}
 
@@ -63,9 +71,12 @@ func GetRedirectURL(url, ip string) RedirectResult {
 	req.Header.Set("X-Forwarded-For", ip)
 	req.Header.Set("Remote_Addr", ip)
 
+	logger.Printf("请求头: Host=%s, Client-Ip=%s, X-Forwarded-For=%s", host, ip, ip)
+
 	// 发送请求
 	resp, err := client.Do(req)
 	if err != nil {
+		logger.Printf("请求失败: %v", err)
 		return RedirectResult{Error: fmt.Sprintf("请求失败: %v", err)}
 	}
 	defer resp.Body.Close()
@@ -73,6 +84,8 @@ func GetRedirectURL(url, ip string) RedirectResult {
 	// 获取重定向地址
 	location := resp.Header.Get("Location")
 	statusCode := resp.StatusCode
+
+	logger.Printf("响应状态码: %d, Location: %s", statusCode, location)
 
 	return RedirectResult{
 		Location:   location,
